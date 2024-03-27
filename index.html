@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signature Pad by Ayush Majumdar</title>
+<style>
+    #signatureCanvas {
+        margin: 10px;
+        padding: 10px;
+        background-color: #fff;
+        border: 1px solid #000;
+        margin-bottom: 10px;
+    }
+    #settings {
+        margin-bottom: 10px;
+    }
+    #footer {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 14px;
+        background-color: #f4f4f4;
+        padding: 20px;
+        border-top: 2px solid #ccc;
+        box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    #footer p {
+        margin: 0;
+    }
+
+    #footer span {
+        font-size: 20px;
+        vertical-align: middle;
+    }
+
+
+</style>
+</head>
+<body>
+    <marquee behavior="scroll" direction="left" scrollamount="12">Focus was to provide a solution so adding design in on hold for now , Kept the page as simple as possible.. :)</marquee>
+    <h2>Signature Pad by Ayush</h2>
+    <div id="settings">
+        <label for="bgColor">Background Color:</label>
+        <input type="color" id="bgColor" value="#ffffff" onchange="changeBackgroundColor()">
+        <label for="penColor">Pen Color:</label>
+        <input type="color" id="penColor" value="#000000">
+        <label for="penSize">Pen Size:</label>
+        <input type="range" id="penSize" min="1" max="10" value="2">
+        <label for="imageSize">Image Size (Under KB):</label>
+        <input type="number" id="imageSize" min="1" step="1" value="20">
+    </div>
+    <canvas id="signatureCanvas" width="1000" height="500"></canvas>
+    <button onclick="clearSignature()">Clear Signature</button><br>
+    <button onclick="saveSignature()">Save Signature</button>
+    <button onclick="downloadSignature()">Download Signature</button>
+    <select id="signatureList" onchange="retrieveSignature()">
+        <option value="">Select a signature</option>
+    </select>
+
+
+    <div id="footer">
+        <p><span>Made with <span style="color: rgb(234, 241, 9);">&hearts;</span> by </span><span ><a href="https://github.com/theayushmajumdar">Ayush Majumdar</a> - 2024</span></p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('signatureCanvas');
+        const context = canvas.getContext('2d');
+        let isDrawing = false;
+     let lastX = 0;
+     let lastY = 0;
+
+    function draw(e) {
+        if (!isDrawing) return;
+        context.strokeStyle = document.getElementById('penColor').value;
+        context.lineJoin = 'round';
+        context.lineCap = 'round';
+        context.lineWidth = document.getElementById('penSize').value;
+        context.beginPath();
+        context.moveTo(lastX, lastY);
+        context.lineTo(e.offsetX, e.offsetY);
+        context.stroke();
+        [lastX, lastY] = [e.offsetX, e.offsetY];
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+        isDrawing = true;
+        [lastX, lastY] = [e.offsetX, e.offsetY];
+    });
+
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', () => isDrawing = false);
+    canvas.addEventListener('mouseout', () => isDrawing = false);
+
+    function clearSignature() {
+        context.fillStyle = document.getElementById('bgColor').value;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function saveSignature() {
+        localStorage.setItem('signature_' + Date.now(), canvas.toDataURL());
+        alert('haan bhai save karliya hain!!');
+        updateSignatureList();
+    }
+
+
+
+    function downloadSignature() {
+    const dataUrl = canvas.toDataURL('image/png');
+    //const selectedSize = document.getElementById('imageSize').value * 1024; // Convert to bytes
+    const selectedSizeKB = parseInt(document.getElementById('imageSize').value); // Convert to kilobytes
+
+    const image = new Image();
+    image.src = dataUrl;
+    image.onload = function() {
+        let scaleFactor = 1;
+        let tempCanvas = document.createElement('canvas');
+        let tempContext = tempCanvas.getContext('2d');
+        let tempDataUrl;
+        
+        do {
+            scaleFactor -= 0.05; // Adjust this value as needed
+            tempCanvas.width = image.width * scaleFactor;
+            tempCanvas.height = image.height * scaleFactor;
+            tempContext.drawImage(image, 0, 0, tempCanvas.width, tempCanvas.height);
+            tempDataUrl = tempCanvas.toDataURL('image/png');
+        } while (Math.round(tempDataUrl.length * 0.75 / 1024) > selectedSizeKB && scaleFactor > 0);
+        
+        if (scaleFactor <= 0) {
+            alert('Image size exceeds the limit even after scaling down.');
+        } else {
+            const link = document.createElement('a');
+            link.href = tempDataUrl;
+            link.download = 'signature.png';
+            link.click();
+        }
+    };
+}
+
+
+    function updateSignatureList() {
+        const signatureList = document.getElementById('signatureList');
+        signatureList.innerHTML = '<option value="">Select a signature</option>';
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith('signature_')) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = new Date(parseInt(key.replace('signature_', ''))).toLocaleString();
+                signatureList.appendChild(option);
+            }
+        }
+    }
+
+    function retrieveSignature() {
+        const signatureId = document.getElementById('signatureList').value;
+        if (signatureId) {
+            const signatureDataUrl = localStorage.getItem(signatureId);
+            const image = new Image();
+            image.src = signatureDataUrl;
+            image.onload = function() {
+                context.drawImage(image, 0, 0);
+            };
+        }
+    }
+
+    // Function to change background color of canvas immediately
+    function changeBackgroundColor() {
+        const bgColor = document.getElementById('bgColor').value;
+        canvas.style.background = bgColor;
+    }
+
+    updateSignatureList();
+</script>
+
+
+</body>
+</html>
